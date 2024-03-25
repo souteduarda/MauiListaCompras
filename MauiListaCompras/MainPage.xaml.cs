@@ -17,32 +17,27 @@ public partial class MainPage : ContentPage
     private void ToolbarItem_Clicked_Somar(object sender, EventArgs e)
     {
         double soma = lista_produtos.Sum(i => (i.Preco * i.Quantidade));
-        string msg = $"O totaç é {soma:C}";
+        string msg = $"O total é {soma:C}";
         DisplayAlert("Somatória", msg, "Fechar");
     }
 
-    protected override void OnAppearing()
+    protected async override void OnAppearing()
     {
         if (lista_produtos.Count == 0)
         {
-            Task.Run(async () =>
+            if(lista_produtos.Count == 0)
             {
                 List<Produto> tmp = await App.Db.GetAll();
                 foreach (Produto p in tmp)
                 {
                     lista_produtos.Add(p);
                 }
-            });
+            }
         }
     }
     private async void ToolbarItem_Clicked_Add(object sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("//NovoProduto");
-    }
-
-    private void lst_produtos_ItemSelected(object sender, SelectedItemChangedEventArgs e)
-    {
-
+        await Navigation.PushAsync(new View.NovoProduto2());
     }
 
     private async void MenuItem_Clicked_Remover(object sender, EventArgs e)
@@ -58,8 +53,9 @@ public partial class MainPage : ContentPage
 
             if (confirm)
             {
-                await App.Db.Delete(1);
+                await App.Db.Delete(p.Id);
                 await DisplayAlert("Sucesso!", "Produto removido", "OK");
+                lista_produtos.Remove(p);
             }
         } catch (Exception ex)
         {
@@ -67,20 +63,17 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private void txt_search_TextChanged(object sender, TextChangedEventArgs e)
+    private async void txt_search_TextChanged(object sender, TextChangedEventArgs e)
     {
         string q = e.NewTextValue;
         lista_produtos.Clear();
-        Task.Run(async () =>
-        {
-            List<Produto> tmp = await App.Db.Search(q);
+     
+        List<Produto> tmp = await App.Db.Search(q);
             foreach (Produto p in tmp)
             {
                 lista_produtos.Add(p);
             }
-        });
     }
-
     private void ref_carregando_Refreshing(object sender, EventArgs e)
     {
         lista_produtos.Clear();
@@ -93,5 +86,15 @@ public partial class MainPage : ContentPage
             }
         });
         ref_carregando.IsRefreshing = false;
+    }
+
+    private void lst_produtos_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+    {
+        Produto? p = e.SelectedItem as Produto;
+
+        Navigation.PushAsync(new View.EditarProduto
+        {
+            BindingContext = p
+        });
     }
 }
